@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/css/estilo.css">
+  <link rel="stylesheet" href="/css/cartaz.css">
+  <script src="/js/cartaz.js" defer></script>
+  <title>Criador de Cartazes</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <header class="shadow">
+     <div class="header-primeiro ">
+        <a href="/index.html"><img src="/img/logotipo.jpg" alt="logo"></a>
+      </div>
+
+    <div class="text-center header-segundo">
+      <h2 class="mt-2 p-1">Sistema de Cartaz</h2>
+      <button type="button" class="btn-header-segundo m-2"><a style="text-decoration: none; color: #ffffff;" href="/index.html"> Sair do Portal</a></button>
+    </div>
+  </header>
+
+  <div class="container-box">
+    <h3 class="text-center mb-4">🖨️ Criador de Cartazes</h3>
+
+    <form id="formCartaz">
+      <div class="mb-3">
+        <label for="descricao" class="form-label">Descrição do Produto</label>
+        <input type="text" class="form-control" id="descricao" required>
+      </div>
+
+      <div class="mb-3">
+        <label for="preco" class="form-label">Preço</label>
+        <input type="text" class="form-control" id="preco" placeholder="Ex: R$ 9,99" required>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Tipo de Cartaz</label>
+        <select class="form-select" id="tipoCartaz">
+          <option value="oferta">Oferta</option>
+          <option value="normal">Sem Oferta</option>
+        </select>
+      </div>
+
+      <div class="mb-3">
+        <label for="validadeDias" class="form-label">Validade (em dias)</label>
+        <input type="number" class="form-control" id="validadeDias" placeholder="Ex: 10">
+        <small class="text-muted">Digite o número de dias e o sistema calculará a data final.</small>
+      </div>
+
+      <button type="submit" class="btn btn-danger w-100">🧾 Gerar Cartaz</button>
+    </form>
+
+    <button type="button" class="btn btn-success w-100 mt-3" onclick="baixarPDF()">📥 Baixar em A4</button>
+
+    <!-- Aqui será gerado o cartaz -->
+    <div id="cartazGerado" class="cartaz d-none"></div>
+  </div>
+
+  <!-- Bibliotecas necessárias -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <footer>
+    
+        <div class="footer-bottom text-muted">
+            <hr>
+            <p>copyright &copy; Sem direitos, 2026</p>
+            <hr>
+            <p>Projeto criado por <a href="https://vinivp.vercel.app">vinivp</a> programador front end</p>
+        </div>
+
+    </footer>
+
+</body>
+
+
+
+</html>
