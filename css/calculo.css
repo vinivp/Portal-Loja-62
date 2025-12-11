@@ -1,32 +1,44 @@
-    body {
-      background-color: #f2f2f2;
-      font-family: 'Segoe UI', sans-serif;
+    body { 
+      background-color: #f8f9fa; 
+      font-family: 'Segoe UI', sans-serif; 
     }
-    .header {
-      background-color: #dc3545;
-      color: white;
-      padding: 15px;
-      text-align: center;
-      font-size: 1.5rem;
-      font-weight: bold;
+
+    .container-box { 
+      max-width: 800px; 
+      margin: 20px auto; 
+      background: #fff; 
+      padding: 20px; 
+      border-radius: 10px; 
+      box-shadow: 0 0 10px rgba(0,0,0,0.1); 
     }
-    .container-box {
-      background-color: white;
-      max-width: 700px;
-      margin: 30px auto;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+
+    .result { 
+      font-size: 1.2rem; 
+      font-weight: bold; 
     }
-    .result {
-      font-size: 1.4rem;
-      font-weight: bold;
-      color: #0d6efd;
+
+    .alert-ok { 
+      color: #198754;  /* verde */
+    
+    }   
+    .alert-erro { 
+      color: #dc3545; /* vermelho */
+    } 
+
+    table { 
+      margin-top: 20px; 
+      font-size: 0.9rem; 
     }
-    .footer {
-      text-align: center;
-      font-size: 0.9rem;
-      margin-top: 40px;
-      color: #777;
+
+    table th { 
+      background-color: #f1f1f1; 
     }
     
+    /* Mobile */
+    @media (max-width: 576px) {
+      .container-box { padding: 10px; }
+      table { font-size: 0.8rem; }
+      .result { font-size: 1rem; }
+    }
+    /* Logo invisível para uso no PDF */
+    #logoPdf { display: none; }
