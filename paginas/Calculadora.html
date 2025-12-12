@@ -5,6 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="/css/estilo.css">
   <link rel="stylesheet" href="/css/calculo.css">
+  <link rel="manifest" href="/manifest.json">
+
+  <link rel="manifest" href="/manifest.json">
+  <script>
+    if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/service-worker.js")
+    .then(() => console.log("Service Worker registrado!"));
+    }
+  </script>
+
   <script src="/js/calculadora.js" defer></script>
  <!-- Bibliotecas necessárias -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
