@@ -58,3 +58,28 @@
       color: #777;
     }
     
+  .btn-grid {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .portal-btn {
+    width: 100%;
+  }
+
+@media (max-width: 600px) {
+  .btn-grid {
+    flex-direction: column;
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 20px;
+  }
+
+  .portal-btn {
+    width: 90%;
+  }
+}
+
