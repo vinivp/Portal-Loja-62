@@ -38,12 +38,12 @@ header {
 }
 
 .header-user{
-   
     text-align: center;
     margin-right: 0.5rem;
     border: 1px solid #000;
     height: 1.5rem;
 }
+
 .header-user p{
     color: #ffffff;
     padding: 1px 1rem 0.5rem 1.5rem;
@@ -64,7 +64,8 @@ header {
     background-color: #055597;
     color: #ffffff;
     border-radius: 0.5rem;
-    padding: 0.5rem;
+    padding: 0.5rem 1rem 0.5rem 1.5rem;
+    margin: 0.5rem ;
 }
 
 /* Estilo resetado*/
