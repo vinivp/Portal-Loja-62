@@ -20,9 +20,7 @@
   width: 112px;
   height: 112px;
   object-fit: contain;
-  background: rgba(255, 255, 255, 0.96);
-  border-radius: 8px;
-  padding: 12px;
+  background: transparent;
 }
 
 .login-visual h1 {
