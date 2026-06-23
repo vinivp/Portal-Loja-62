@@ -36,6 +36,53 @@
   font-size: 18px;
 }
 
+.portal-sync-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #f2f5f9;
+  color: #17212f;
+  text-align: center;
+}
+
+.portal-sync-screen > div {
+  max-width: 420px;
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+}
+
+.portal-sync-screen img {
+  width: 92px;
+  height: 92px;
+  object-fit: contain;
+}
+
+.portal-sync-screen h1,
+.portal-sync-screen p {
+  margin: 0;
+}
+
+.portal-sync-screen p {
+  color: #657184;
+}
+
+.sync-loader {
+  width: 28px;
+  height: 28px;
+  border: 3px solid #dbe3ef;
+  border-top-color: #b3202b;
+  border-radius: 50%;
+  animation: sync-spin 0.8s linear infinite;
+}
+
+@keyframes sync-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .login-panel {
   background: #ffffff;
   color: #17212f;

@@ -556,7 +556,9 @@ function persistLocalPortalData(data: PortalData) {
   localStorage.setItem(PORTAL_DATA_KEY, JSON.stringify(data));
 }
 
-function usePortalData(canUseFirebase: boolean) {
+function usePortalData(firebaseSessionKey: string | null) {
+  const activeSessionKey = isFirebaseAuthEnabled ? firebaseSessionKey : "local";
+  const canUseFirebase = !isFirebaseAuthEnabled || Boolean(firebaseSessionKey);
   const [data, setData] = useState<PortalData>(() => readLocalPortalData());
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(() =>
     isFirebaseConfigured
@@ -577,6 +579,10 @@ function usePortalData(canUseFirebase: boolean) {
           detail: "Configure o Firebase para sincronizar entre dispositivos.",
         },
   );
+  const [syncedSessionKey, setSyncedSessionKey] = useState<string | null>(
+    isFirebaseConfigured ? null : activeSessionKey,
+  );
+  const [failedSessionKey, setFailedSessionKey] = useState<string | null>(null);
   const latestDataRef = useRef(data);
   const migrationAttemptedRef = useRef(false);
 
@@ -586,6 +592,7 @@ function usePortalData(canUseFirebase: boolean) {
 
   useEffect(() => {
     if (!isFirebaseConfigured || !canUseFirebase) return undefined;
+    const subscriptionKey = activeSessionKey ?? "local";
 
     return subscribePortalState<PortalData>(
       (remoteData) => {
@@ -605,33 +612,40 @@ function usePortalData(canUseFirebase: boolean) {
             label: "Firebase conectado",
             detail: "Dados sincronizados com Firestore.",
           });
+          setSyncedSessionKey(subscriptionKey);
+          setFailedSessionKey(null);
           return;
         }
 
         savePortalState(latestDataRef.current)
-          .then(() =>
+          .then(() => {
+            setSyncedSessionKey(subscriptionKey);
+            setFailedSessionKey(null);
             setSyncStatus({
               mode: "firebase",
               label: "Firebase conectado",
               detail: "Documento inicial criado no Firestore.",
-            }),
-          )
-          .catch((error) =>
+            });
+          })
+          .catch((error) => {
+            setFailedSessionKey(subscriptionKey);
             setSyncStatus({
               mode: "error",
               label: "Erro no Firebase",
               detail: error.message,
-            }),
-          );
+            });
+          });
       },
-      (error) =>
+      (error) => {
+        setFailedSessionKey(subscriptionKey);
         setSyncStatus({
           mode: "error",
           label: "Erro no Firebase",
           detail: error.message,
-        }),
+        });
+      },
     );
-  }, [canUseFirebase]);
+  }, [activeSessionKey, canUseFirebase]);
 
   const setPortalData = (value: PortalData | ((current: PortalData) => PortalData)) => {
     setData((current) => {
@@ -653,7 +667,15 @@ function usePortalData(canUseFirebase: boolean) {
     });
   };
 
-  return { data, setPortalData, syncStatus };
+  const remoteReady =
+    !isFirebaseConfigured ||
+    (activeSessionKey !== null && syncedSessionKey === activeSessionKey);
+  const syncError =
+    activeSessionKey !== null && failedSessionKey === activeSessionKey
+      ? syncStatus.detail
+      : "";
+
+  return { data, setPortalData, syncStatus, remoteReady, syncError };
 }
 
 function resolveStateUpdate<T>(value: StateUpdate<T>, current: T) {
@@ -663,16 +685,18 @@ function resolveStateUpdate<T>(value: StateUpdate<T>, current: T) {
 function useFirebaseSession() {
   const [email, setEmail] = useState<string | null>(null);
   const [ready, setReady] = useState(!isFirebaseAuthEnabled);
+  const [revision, setRevision] = useState(0);
 
   useEffect(() => {
     if (!isFirebaseAuthEnabled) return undefined;
     return subscribeFirebaseAuth((firebaseUser) => {
       setEmail(firebaseUser?.email?.toLowerCase() ?? null);
+      setRevision((current) => current + 1);
       setReady(true);
     });
   }, []);
 
-  return { email, ready };
+  return { email, ready, revision };
 }
 
 function sortBoards<T>(boards: MonthlyBoard<T>[]) {
@@ -892,6 +916,24 @@ function SectionHeader({
 
 function EmptyState({ text }: { text: string }) {
   return <div className="empty-state">{text}</div>;
+}
+
+function PortalSyncScreen({ error }: { error: string }) {
+  return (
+    <main className="portal-sync-screen" aria-live="polite">
+      <div>
+        <img src="/imagem/LogoApp.png" alt="Portal Loja 62" />
+        {!error && <span className="sync-loader" aria-hidden="true" />}
+        <h1>{error ? "Não foi possível sincronizar" : "Atualizando o portal"}</h1>
+        <p>{error || "Buscando as informações mais recentes da Loja 62."}</p>
+        {error && (
+          <button className="primary-button" type="button" onClick={() => window.location.reload()}>
+            <RotateCcw size={17} /> Tentar novamente
+          </button>
+        )}
+      </div>
+    </main>
+  );
 }
 
 function LoginScreen({
@@ -2778,8 +2820,10 @@ function UsersAdminPage({
 
 function App() {
   const firebaseSession = useFirebaseSession();
-  const canUseFirebase = !isFirebaseAuthEnabled || Boolean(firebaseSession.email);
-  const { data, setPortalData, syncStatus } = usePortalData(canUseFirebase);
+  const firebaseDataSession = firebaseSession.email
+    ? `${firebaseSession.email}:${firebaseSession.revision}`
+    : null;
+  const { data, setPortalData, syncStatus, remoteReady, syncError } = usePortalData(firebaseDataSession);
   const { users, vacations, birthdays, menus, cartazistaNotes } = data;
   const [currentUser, setCurrentUser] = usePersistentState<PortalUser | null>("portal-loja62-current-user", null);
   const [activePage, setActivePage] = useState<PageKey>("dashboard");
@@ -2838,6 +2882,10 @@ function App() {
         }}
       />
     );
+  }
+
+  if (!remoteReady) {
+    return <PortalSyncScreen error={syncError} />;
   }
 
   const guardedSetPage = (page: PageKey) => {
