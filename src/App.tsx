@@ -940,7 +940,7 @@ function LoginScreen({
   return (
     <main className="login-screen">
       <div className="login-visual">
-        <img src="/imagem/Logo_Nome.png" alt="Portal Loja 62" />
+        <img src="/imagem/LogoApp.png" alt="Portal Loja 62" />
         <div>
           <h1>Portal Loja 62</h1>
           <p>Férias, aniversariantes, cardápio, calculadoras, líderes e admin em um só lugar.</p>

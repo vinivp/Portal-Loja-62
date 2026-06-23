@@ -10,7 +10,8 @@
 
 .login-visual {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
+  justify-content: center;
   gap: 24px;
   padding: 56px;
 }
@@ -1301,8 +1302,9 @@ pre {
 
   .login-visual {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     gap: 14px;
+    text-align: center;
   }
 
   .user-chip {
