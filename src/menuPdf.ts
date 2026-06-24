@@ -28,8 +28,27 @@ function formatMenuWeekday(date: string) {
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
+const menuAbbreviationRules: Array<[RegExp, string]> = [
+  [/\bc\s*\/\s*/giu, "com "],
+  [/\bs\s*\/\s*/giu, "sem "],
+  [/\bp\s*\/\s*/giu, "para "],
+  [/\bbco\b/giu, "branco"],
+  [/\btom\b/giu, "tomate"],
+  [/\brech\b/giu, "recheado"],
+];
+
+function expandMenuAbbreviations(value: string) {
+  return menuAbbreviationRules.reduce(
+    (expanded, [pattern, replacement]) => expanded.replace(pattern, replacement),
+    value,
+  );
+}
+
 export function formatMenuItemCase(value: string) {
-  const normalized = value.replace(/\s+/g, " ").trim().toLocaleLowerCase("pt-BR");
+  const normalized = expandMenuAbbreviations(value)
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLocaleLowerCase("pt-BR");
   if (!normalized) return "";
   return normalized.charAt(0).toLocaleUpperCase("pt-BR") + normalized.slice(1);
 }
