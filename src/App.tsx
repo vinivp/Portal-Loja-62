@@ -51,7 +51,7 @@ import "./App.css";
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 type Permission = "Admin" | "Lider" | "Usuário";
-type RoleName = "Desenvolvedor" | "Gerente" | "Lider" | "Colaborador";
+type RoleName = "Desenvolvedor" | "Gerência" | "Lider" | "Colaborador";
 type PageKey =
   | "dashboard"
   | "cartazista"
@@ -218,10 +218,10 @@ const initialUsers: PortalUser[] = [
   },
   {
     id: "u-gerente",
-    name: "Gerente Loja 62",
+    name: "Gerência Loja 62",
     email: "gerente@loja62.com",
     password: "1234",
-    roleName: "Gerente",
+    roleName: "Gerência",
     permission: "Admin",
     sector: "Gestão",
     shift: "Manhã",
@@ -2707,7 +2707,7 @@ function UsersAdminPage({
               Cargo
               <select value={form.roleName} onChange={(event) => setForm({ ...form, roleName: event.target.value as RoleName })}>
                 <option>Desenvolvedor</option>
-                <option>Gerente</option>
+                <option>Gerência</option>
                 <option>Lider</option>
                 <option>Colaborador</option>
               </select>
