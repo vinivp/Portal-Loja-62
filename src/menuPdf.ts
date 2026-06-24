@@ -28,12 +28,19 @@ function formatMenuWeekday(date: string) {
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
+export function formatMenuItemCase(value: string) {
+  const normalized = value.replace(/\s+/g, " ").trim().toLocaleLowerCase("pt-BR");
+  if (!normalized) return "";
+  return normalized.charAt(0).toLocaleUpperCase("pt-BR") + normalized.slice(1);
+}
+
 function normalizePdfMenuItem(value: string) {
-  return value
+  const normalized = value
     .replace(/^[|:;•·\-–—]+|[|:;•·\-–—]+$/g, "")
     .replace(/\s+\d{3,}(?:\s+\d{3,})*$/, "")
     .replace(/\s+/g, " ")
     .trim();
+  return formatMenuItemCase(normalized);
 }
 
 function isPdfMenuNoise(value: string) {

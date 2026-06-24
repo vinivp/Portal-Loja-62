@@ -48,6 +48,7 @@ import {
 } from "./firebase";
 import {
   buildPdfTextLayouts,
+  formatMenuItemCase,
   parseMenuPdfLayouts,
   type PdfTextItem,
 } from "./menuPdf";
@@ -1849,7 +1850,7 @@ function MenuPage({
       title: dayForm.title.trim() || new Intl.DateTimeFormat("pt-BR", { weekday: "long" }).format(new Date(`${dayForm.date}T12:00:00`)),
       items: dayForm.itemsText
         .split("\n")
-        .map((item) => item.trim())
+        .map(formatMenuItemCase)
         .filter(Boolean),
       notes: dayForm.notes.trim(),
       source: "manual",
