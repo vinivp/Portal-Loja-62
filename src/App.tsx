@@ -40,6 +40,7 @@ import {
   isFirebaseAuthEnabled,
   isFirebaseConfigured,
   savePortalState,
+  savePortalStatePatch,
   signInFirebaseUser,
   signOutFirebaseUser,
   subscribeFirebaseAuth,
@@ -654,13 +655,25 @@ function usePortalData(firebaseSessionKey: string | null) {
       latestDataRef.current = next;
 
       if (isFirebaseConfigured && canUseFirebase) {
-        savePortalState(next).catch((error) =>
-          setSyncStatus({
-            mode: "error",
-            label: "Erro ao salvar",
-            detail: error.message,
-          }),
-        );
+        // Save only changed sections so an older tab cannot replace unrelated data.
+        const changedState: Partial<PortalData> = {};
+        if (next.users !== current.users) changedState.users = next.users;
+        if (next.vacations !== current.vacations) changedState.vacations = next.vacations;
+        if (next.birthdays !== current.birthdays) changedState.birthdays = next.birthdays;
+        if (next.menus !== current.menus) changedState.menus = next.menus;
+        if (next.cartazistaNotes !== current.cartazistaNotes) {
+          changedState.cartazistaNotes = next.cartazistaNotes;
+        }
+
+        if (Object.keys(changedState).length > 0) {
+          savePortalStatePatch<PortalData>(changedState).catch((error) =>
+            setSyncStatus({
+              mode: "error",
+              label: "Erro ao salvar",
+              detail: error.message,
+            }),
+          );
+        }
       }
 
       return next;

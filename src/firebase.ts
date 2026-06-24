@@ -95,6 +95,20 @@ export async function savePortalState<T>(state: T) {
   );
 }
 
+export async function savePortalStatePatch<T extends Record<string, unknown>>(
+  state: Partial<T>,
+) {
+  if (!firebaseDb) return;
+  await setDoc(
+    doc(firebaseDb, "portal", "loja62"),
+    {
+      state,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+}
+
 export async function signInFirebaseUser(email: string, password: string) {
   if (!firebaseAuth) throw new Error("Firebase Auth não está configurado.");
   return signInWithEmailAndPassword(firebaseAuth, email, password);
