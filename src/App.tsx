@@ -46,6 +46,11 @@ import {
   subscribeFirebaseAuth,
   subscribePortalState,
 } from "./firebase";
+import {
+  buildPdfTextLayouts,
+  parseMenuPdfLayouts,
+  type PdfTextItem,
+} from "./menuPdf";
 import "./App.css";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
@@ -820,66 +825,8 @@ function generateSchedule(
   return rows;
 }
 
-function parseMenuTextToDays(text: string, year: number, month: number) {
-  const normalized = text
-    .replace(/\r/g, "\n")
-    .replace(/[ \t]+/g, " ")
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-  type ParsedMenuDay = { day: number; title: string; items: string[] };
-  const found: ParsedMenuDay[] = [];
-  let currentIndex = -1;
-
-  const startNewDay = (day: number, title: string): ParsedMenuDay => {
-    const next = { day, title, items: [] };
-    found.push(next);
-    currentIndex = found.length - 1;
-    return next;
-  };
-
-  for (const line of normalized) {
-    const dateMatch = line.match(/(?:^|\s)(\d{1,2})[/.-](\d{1,2})(?:[/.-](\d{2,4}))?/);
-    const simpleDayMatch = line.match(/^(\d{1,2})\s*[-:]?\s*(.*)$/);
-    const weekdayMatch = line.match(
-      /(segunda|terça|ter[cç]a|quarta|quinta|sexta|sábado|sabado|domingo)(?:-feira)?/i,
-    );
-
-    if (dateMatch) {
-      const day = Number(dateMatch[1]);
-      const detectedMonth = Number(dateMatch[2]) - 1;
-      if (detectedMonth === month && day >= 1 && day <= 31) {
-        const activeDay = startNewDay(day, weekdayMatch?.[0] ?? `Dia ${day}`);
-        const remainder = line.replace(dateMatch[0], "").trim();
-        if (remainder) activeDay.items.push(remainder);
-        continue;
-      }
-    }
-
-    if (simpleDayMatch && Number(simpleDayMatch[1]) >= 1 && Number(simpleDayMatch[1]) <= 31) {
-      const day = Number(simpleDayMatch[1]);
-      const title = weekdayMatch?.[0] ?? `Dia ${day}`;
-      const activeDay = startNewDay(day, title);
-      if (simpleDayMatch[2]) activeDay.items.push(simpleDayMatch[2]);
-      continue;
-    }
-
-    const activeDay = currentIndex >= 0 ? found[currentIndex] : undefined;
-    if (weekdayMatch && activeDay && activeDay.items.length === 0) {
-      activeDay.title = weekdayMatch[0];
-    } else if (activeDay) {
-      activeDay.items.push(line);
-    }
-  }
-
-  return found.filter((day) => day.items.length).map((day) => ({
-    id: makeId("pdf-menu"),
-    date: toISODate(year, month, day.day),
-    title: day.title,
-    items: day.items.slice(0, 8),
-    notes: "Importado automaticamente de PDF. Revise antes de divulgar.",
-    source: "pdf" as const,
-  }));
+function isGeneratedPdfMenuDay(day: MenuDay) {
+  return day.source === "pdf" || day.id.startsWith("pdf-menu-");
 }
 
 function StatCard({
@@ -1919,31 +1866,88 @@ function MenuPage({
   }
 
   async function importPdf(file: File | undefined) {
-    if (!file || !selectedMenu) return;
+    if (!file) return;
     setPdfStatus("Lendo PDF...");
     try {
       const buffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
-      const pages: string[] = [];
+      const layouts: string[][] = [[], [], []];
       for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
         const page = await pdf.getPage(pageNumber);
         const content = await page.getTextContent();
-        const pageText = content.items
-          .map((item) => ("str" in item ? item.str : ""))
-          .join("\n");
-        pages.push(pageText);
+        const textItems: PdfTextItem[] = content.items.flatMap((item) =>
+          "str" in item
+            ? [{ str: item.str, hasEOL: item.hasEOL, transform: [...item.transform] }]
+            : [],
+        );
+        const pageLayouts = buildPdfTextLayouts(textItems);
+        pageLayouts.forEach((pageLayout, index) => layouts[index].push(...pageLayout));
       }
-      const extracted = pages.join("\n");
-      const importedDays = parseMenuTextToDays(extracted, selectedMenu.year, selectedMenu.month);
-      setPdfText(extracted.slice(0, 2200));
-      if (importedDays.length === 0) {
-        setPdfStatus("PDF lido, mas não encontrei dias automaticamente. Use o texto extraído como referência para lançar manualmente.");
+
+      const fallbackYear = selectedMenu?.year ?? monthForm.year;
+      const fallbackMonth = selectedMenu?.month ?? monthForm.month;
+      const parsed = parseMenuPdfLayouts(layouts, fallbackYear, fallbackMonth);
+      setPdfText(parsed?.preview ?? layouts[0].join("\n").slice(0, 4000));
+      if (!parsed) {
+        setPdfStatus("PDF lido, mas não encontrei datas completas com itens de cardápio. Confira o texto extraído abaixo.");
         return;
       }
-      setMenus((current) =>
-        current.map((board) => (board.id === selectedMenu.id ? { ...board, days: [...board.days, ...importedDays] } : board)),
+
+      const existingTarget = menus.find(
+        (board) => board.year === parsed.year && board.month === parsed.month,
       );
-      setPdfStatus(`${importedDays.length} dia(s) importado(s) para ${selectedMenu.title}. Revise os boxes gerados.`);
+      const targetMonthId = existingTarget?.id ?? makeId("menu-month");
+      const importedDays: MenuDay[] = parsed.days.map((day) => ({
+        id: makeId("pdf-menu"),
+        date: day.date,
+        title: day.title,
+        items: day.items.slice(0, 12),
+        notes: "Importado automaticamente de PDF. Revise antes de divulgar.",
+        source: "pdf",
+      }));
+
+      const manualDates = new Set(
+        (existingTarget?.days ?? [])
+          .filter((day) => !isGeneratedPdfMenuDay(day))
+          .map((day) => day.date),
+      );
+      const daysToImport = importedDays.filter((day) => !manualDates.has(day.date));
+
+      setMenus((current) =>
+        current.some((board) => board.id === targetMonthId)
+          ? current.map((board) => {
+              if (board.id !== targetMonthId) return board;
+              const preservedDays = board.days.filter((day) => !isGeneratedPdfMenuDay(day));
+              const preservedDates = new Set(preservedDays.map((day) => day.date));
+              return {
+                ...board,
+                days: [
+                  ...preservedDays,
+                  ...importedDays.filter((day) => !preservedDates.has(day.date)),
+                ].sort((a, b) => a.date.localeCompare(b.date)),
+              };
+            })
+          : [
+              ...current,
+              {
+                id: targetMonthId,
+                year: parsed.year,
+                month: parsed.month,
+                title: `Cardápio ${months[parsed.month]} ${parsed.year}`,
+                notes: "Mês criado automaticamente a partir de PDF.",
+                days: importedDays,
+              },
+            ],
+      );
+      setSelectedMonthId(targetMonthId);
+      setYear(parsed.year);
+      setMonth(parsed.month);
+      const skippedCount = importedDays.length - daysToImport.length;
+      setPdfStatus(
+        `${daysToImport.length} dia(s) importado(s) para ${months[parsed.month]}/${parsed.year}.` +
+          (skippedCount > 0 ? ` ${skippedCount} dia(s) manual(is) foram preservado(s).` : "") +
+          " Revise os boxes gerados.",
+      );
     } catch (error) {
       setPdfStatus(`Não foi possível ler o PDF: ${error instanceof Error ? error.message : "erro desconhecido"}`);
     }
@@ -2042,7 +2046,15 @@ function MenuPage({
             <label className="file-input">
               <Upload size={18} />
               Escolher PDF
-              <input type="file" accept="application/pdf" onChange={(event) => importPdf(event.target.files?.[0])} />
+              <input
+                type="file"
+                accept="application/pdf"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  event.target.value = "";
+                  void importPdf(file);
+                }}
+              />
             </label>
             {pdfStatus && <div className="notice">{pdfStatus}</div>}
             {pdfText && (
