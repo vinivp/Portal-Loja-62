@@ -429,6 +429,10 @@
   cursor: pointer;
 }
 
+.user-chip .mobile-menu-button {
+  display: none;
+}
+
 .user-chip button:hover,
 .icon-actions button:hover {
   border-color: #b3202b;
@@ -1224,7 +1228,7 @@ pre {
   }
 }
 
-@media (max-width: 880px) {
+@media (max-width: 760px) {
   .login-screen {
     grid-template-columns: 1fr;
   }
@@ -1245,13 +1249,14 @@ pre {
 
   .sidebar {
     position: fixed;
-    inset: 0 auto 0 0;
+    inset: 0 0 0 auto;
     z-index: 50;
     width: min(320px, 86vw);
     height: 100dvh;
     padding: 16px;
-    transform: translateX(-105%);
-    box-shadow: 18px 0 40px rgba(7, 20, 38, 0.28);
+    transform: translateX(105%);
+    box-shadow: -18px 0 40px rgba(7, 20, 38, 0.28);
+    transition: transform 180ms ease;
   }
 
   .sidebar.open {
@@ -1259,7 +1264,7 @@ pre {
   }
 
   .sidebar-close-button,
-  .mobile-menu-button {
+  .user-chip .mobile-menu-button {
     display: grid;
   }
 

@@ -1007,7 +1007,7 @@ function PortalShell({
     if (!mobileMenuOpen) return undefined;
 
     const previousOverflow = document.body.style.overflow;
-    const desktopQuery = window.matchMedia("(min-width: 881px)");
+    const desktopQuery = window.matchMedia("(min-width: 761px)");
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") setMobileMenuOpen(false);
     };
