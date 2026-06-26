@@ -2085,6 +2085,9 @@ function MenuPage({
         title={editable ? "Admin Cardápio" : "Cardápio"}
         subtitle="Cardápio diário por mês e ano, com importação automática de PDF."
       />
+      <div className="notice">
+        O cardápio pode sofrer alterações sem aviso prévio conforme ajustes do refeitório.
+      </div>
       <BoardFilters year={year} month={month} setYear={setYear} setMonth={setMonth} />
 
       {editable && (
