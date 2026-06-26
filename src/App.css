@@ -122,6 +122,22 @@
   cursor: pointer;
 }
 
+.portal-signature {
+  width: 100%;
+  margin: 0;
+  padding: 14px 16px 0;
+  border-top: 1px solid #dde6f1;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.login-signature {
+  padding-right: 0;
+  padding-left: 0;
+}
+
 .sync-banner {
   border: 1px solid #dbe3ef;
   border-radius: 8px;
@@ -286,6 +302,8 @@
   text-align: left;
   cursor: pointer;
   font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
 }
 
 .nav-button:hover,
@@ -456,6 +474,11 @@
   display: flex;
   flex-direction: column;
   gap: 22px;
+  flex: 1;
+}
+
+.content > .portal-signature {
+  margin-top: auto;
 }
 
 .section-header {

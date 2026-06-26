@@ -72,6 +72,51 @@ type PageKey =
   | "admin-menu"
   | "admin-users";
 
+type SidebarItem =
+  | { type: "page"; key: PageKey; label: string; icon: ReactNode }
+  | { type: "external"; key: string; label: string; href: string; icon: ReactNode };
+
+const cartazistaExternalTools = [
+  {
+    id: "smarket",
+    title: "Smarket",
+    href: "https://savegnago.smarketsolutions.com.br/login",
+    renderIcon: (size: number) => <Palette size={size} />,
+  },
+  {
+    id: "apex",
+    title: "Apex",
+    href: "https://apex.savegnago.com.br/apex/f?p=107:login::::::",
+    renderIcon: (size: number) => <ExternalLink size={size} />,
+  },
+  {
+    id: "portal-savegnago",
+    title: "Portal Savegnago",
+    href: "https://portal.savegnago.com.br",
+    renderIcon: (size: number) => <Home size={size} />,
+  },
+  {
+    id: "dtfaceum",
+    title: "DTFaceum",
+    href: "https://dtfaceum.com/gruposavegnago",
+    renderIcon: (size: number) => <UserCog size={size} />,
+  },
+  {
+    id: "adobe",
+    title: "Adobe",
+    href: "https://www.adobe.com/home",
+    renderIcon: (size: number) => <FileText size={size} />,
+  },
+  {
+    id: "portal-colaborador",
+    title: "Portal do Colaborador",
+    href: "https://portaldocolaborador.savegnago.com.br/portal/01/ISPortalColaborador",
+    renderIcon: (size: number) => <ExternalLink size={size} />,
+  },
+] as const;
+
+const generalSidebarExternalToolIds = ["apex", "dtfaceum", "portal-savegnago", "portal-colaborador"];
+
 type PortalUser = {
   id: string;
   name: string;
@@ -897,6 +942,49 @@ function PortalSyncScreen({ error }: { error: string }) {
   );
 }
 
+const portalSignatureText =
+  "Este portal não é de forma alguma afiliado à empresa Savegnago Supermercados LTDA. Projeto criado por Vinicius, Cartazista da Loja 62.";
+
+function PortalSignature({ className = "" }: { className?: string }) {
+  return <p className={["portal-signature", className].filter(Boolean).join(" ")}>{portalSignatureText}</p>;
+}
+
+function getLoginErrorMessage(loginError: unknown) {
+  const fallback = "Não foi possível acessar o portal. Confira o e-mail e a senha.";
+  const code =
+    typeof loginError === "object" && loginError !== null && "code" in loginError
+      ? String((loginError as { code?: unknown }).code)
+      : "";
+  const message = loginError instanceof Error ? loginError.message : "";
+
+  if (
+    code === "auth/invalid-credential" ||
+    code === "auth/wrong-password" ||
+    message.includes("auth/invalid-credential") ||
+    message.includes("auth/wrong-password")
+  ) {
+    return "Senha incorreta. Confira o e-mail e a senha e tente novamente.";
+  }
+
+  if (code === "auth/user-not-found" || message.includes("auth/user-not-found")) {
+    return "E-mail não encontrado no Firebase. Confira o perfil selecionado.";
+  }
+
+  if (code === "auth/too-many-requests" || message.includes("auth/too-many-requests")) {
+    return "Muitas tentativas seguidas. Aguarde alguns minutos e tente novamente.";
+  }
+
+  if (code === "auth/network-request-failed" || message.includes("auth/network-request-failed")) {
+    return "Sem conexão com o Firebase. Verifique a internet e tente novamente.";
+  }
+
+  if (code === "auth/user-disabled" || message.includes("auth/user-disabled")) {
+    return "Este acesso foi desativado. Fale com o administrador do portal.";
+  }
+
+  return fallback;
+}
+
 function LoginScreen({
   users,
   onLogin,
@@ -930,11 +1018,7 @@ function LoginScreen({
       setError("");
       await onLogin({ email: normalizedEmail, password, user: found });
     } catch (loginError) {
-      setError(
-        loginError instanceof Error
-          ? loginError.message
-          : "Não foi possível autenticar no Firebase.",
-      );
+      setError(getLoginErrorMessage(loginError));
     } finally {
       setIsSubmitting(false);
     }
@@ -981,6 +1065,7 @@ function LoginScreen({
             </button>
           ))}
         </div>
+        <PortalSignature className="login-signature" />
       </form>
     </main>
   );
@@ -1026,26 +1111,53 @@ function PortalShell({
     };
   }, [mobileMenuOpen]);
 
-  const generalItems: { key: PageKey; label: string; icon: ReactNode }[] = [
-    { key: "dashboard", label: "Início", icon: <LayoutDashboard size={18} /> },
-    { key: "cartazista", label: "Portal do Cartazista", icon: <Palette size={18} /> },
-    { key: "vacations", label: "Férias Mensais", icon: <CalendarRange size={18} /> },
-    { key: "birthdays", label: "Aniversariantes", icon: <Cake size={18} /> },
-    { key: "menu", label: "Cardápio", icon: <Utensils size={18} /> },
-    { key: "calculators", label: "Calculadoras", icon: <Calculator size={18} /> },
+  const generalItems: SidebarItem[] = [
+    { type: "page", key: "dashboard", label: "Início", icon: <LayoutDashboard size={18} /> },
+    { type: "page", key: "cartazista", label: "Portal do Cartazista", icon: <Palette size={18} /> },
+    ...generalSidebarExternalToolIds.flatMap((toolId) => {
+      const tool = cartazistaExternalTools.find((item) => item.id === toolId);
+      return tool
+        ? [{
+        type: "external" as const,
+        key: `external-${tool.id}`,
+        label: tool.title,
+        href: tool.href,
+        icon: tool.renderIcon(18),
+      }]
+        : [];
+    }),
+    { type: "page", key: "vacations", label: "Férias Mensais", icon: <CalendarRange size={18} /> },
+    { type: "page", key: "birthdays", label: "Aniversariantes", icon: <Cake size={18} /> },
+    { type: "page", key: "menu", label: "Cardápio", icon: <Utensils size={18} /> },
+    { type: "page", key: "calculators", label: "Calculadoras", icon: <Calculator size={18} /> },
   ];
-  const leaderItems: { key: PageKey; label: string; icon: ReactNode }[] = [
-    { key: "apex", label: "Apex", icon: <ExternalLink size={18} /> },
-    { key: "scale", label: "Escala 5x2", icon: <ClipboardList size={18} /> },
+  const leaderItems: SidebarItem[] = [
+    { type: "page", key: "apex", label: "Apex", icon: <ExternalLink size={18} /> },
+    { type: "page", key: "scale", label: "Escala 5x2", icon: <ClipboardList size={18} /> },
   ];
-  const adminItems: { key: PageKey; label: string; icon: ReactNode }[] = [
-    { key: "admin-vacations", label: "Admin Férias", icon: <CalendarDays size={18} /> },
-    { key: "admin-birthdays", label: "Admin Aniversários", icon: <Cake size={18} /> },
-    { key: "admin-menu", label: "Admin Cardápio", icon: <Utensils size={18} /> },
-    { key: "admin-users", label: "Usuários", icon: <UserCog size={18} /> },
+  const adminItems: SidebarItem[] = [
+    { type: "page", key: "admin-vacations", label: "Admin Férias", icon: <CalendarDays size={18} /> },
+    { type: "page", key: "admin-birthdays", label: "Admin Aniversários", icon: <Cake size={18} /> },
+    { type: "page", key: "admin-menu", label: "Admin Cardápio", icon: <Utensils size={18} /> },
+    { type: "page", key: "admin-users", label: "Usuários", icon: <UserCog size={18} /> },
   ];
 
-  function NavButton({ item }: { item: { key: PageKey; label: string; icon: ReactNode } }) {
+  function NavButton({ item }: { item: SidebarItem }) {
+    if (item.type === "external") {
+      return (
+        <a
+          className="nav-button"
+          href={item.href}
+          onClick={() => setMobileMenuOpen(false)}
+          rel="noreferrer"
+          target="_blank"
+        >
+          {item.icon}
+          {item.label}
+        </a>
+      );
+    }
+
     return (
       <button
         className={activePage === item.key ? "nav-button active" : "nav-button"}
@@ -1155,7 +1267,10 @@ function PortalShell({
             </button>
           </div>
         </header>
-        <main className="content">{children}</main>
+        <main className="content">
+          {children}
+          <PortalSignature />
+        </main>
       </div>
     </div>
   );
@@ -2375,14 +2490,6 @@ function CartazistaPage({
   onSaveNote: (note: string) => void;
 }) {
   const [tab, setTab] = useState<"tools" | "orders" | "notes">("tools");
-  const externalTools = [
-    { title: "Smarket", href: "https://savegnago.smarketsolutions.com.br/login", icon: <Palette size={21} /> },
-    { title: "Apex", href: "https://apex.savegnago.com.br/apex/f?p=107:login::::::", icon: <ExternalLink size={21} /> },
-    { title: "Portal Savegnago", href: "https://portal.savegnago.com.br", icon: <Home size={21} /> },
-    { title: "DTFaceum", href: "https://dtfaceum.com/gruposavegnago", icon: <UserCog size={21} /> },
-    { title: "Adobe", href: "https://www.adobe.com/home", icon: <FileText size={21} /> },
-    { title: "Portal do Colaborador", href: "https://portaldocolaborador.savegnago.com.br/portal/01/ISPortalColaborador", icon: <ExternalLink size={21} /> },
-  ];
 
   return (
     <>
@@ -2414,9 +2521,9 @@ function CartazistaPage({
             <strong>Bloco de Anotações</strong>
             <span>Anotações salvas no portal.</span>
           </button>
-          {externalTools.map((tool) => (
+          {cartazistaExternalTools.map((tool) => (
             <a className="cartazista-tool" href={tool.href} key={tool.title} target="_blank" rel="noreferrer">
-              {tool.icon}
+              {tool.renderIcon(21)}
               <strong>{tool.title}</strong>
               <span>Abrir sistema oficial.</span>
             </a>
