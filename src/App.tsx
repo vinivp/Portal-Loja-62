@@ -875,6 +875,12 @@ function isGeneratedPdfMenuDay(day: MenuDay) {
   return day.source === "pdf" || day.id.startsWith("pdf-menu-");
 }
 
+function getLatestMenuMonthWithDays(menus: MenuMonth[]) {
+  return [...menus]
+    .filter((board) => board.days.length > 0)
+    .sort((a, b) => b.year - a.year || b.month - a.month)[0];
+}
+
 function StatCard({
   icon,
   label,
@@ -1297,8 +1303,11 @@ function Dashboard({
     .filter((entry) => entry.status === "Em férias").length;
   const monthBirthdayCount =
     birthdays.find((board) => board.month === currentMonth && board.year === currentYear)?.entries.length ?? 0;
-  const monthMenuCount =
-    menus.find((board) => board.month === currentMonth && board.year === currentYear)?.days.length ?? 0;
+  const latestMenuMonth = getLatestMenuMonthWithDays(menus);
+  const monthMenuCount = latestMenuMonth?.days.length ?? 0;
+  const menuCountLabel = latestMenuMonth
+    ? `dias no cardápio de ${months[latestMenuMonth.month].toLowerCase()}/${latestMenuMonth.year}`
+    : "dias de cardápio cadastrados";
 
   const shortcuts: { page: PageKey; icon: ReactNode; title: string; text: string; permission?: Permission }[] = [
     {
@@ -1338,7 +1347,7 @@ function Dashboard({
       <div className="stats-grid">
         <StatCard icon={<CalendarRange size={22} />} label="pessoas em férias agora" value={`${activeVacationCount}`} />
         <StatCard icon={<Cake size={22} />} label="aniversários neste mês" value={`${monthBirthdayCount}`} tone="yellow" />
-        <StatCard icon={<Utensils size={22} />} label="dias de cardápio no mês" value={`${monthMenuCount}`} tone="green" />
+        <StatCard icon={<Utensils size={22} />} label={menuCountLabel} value={`${monthMenuCount}`} tone="green" />
         <StatCard icon={<ShieldCheck size={22} />} label="nível de permissão" value={user.permission} tone="red" />
       </div>
 
