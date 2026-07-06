@@ -50,6 +50,7 @@ import {
   buildPdfTextLayouts,
   formatMenuItemCase,
   parseMenuPdfLayouts,
+  PDF_MENU_ITEMS_PER_DAY,
   type PdfTextItem,
 } from "./menuPdf";
 import "./App.css";
@@ -2026,7 +2027,7 @@ function MenuPage({
         id: makeId("pdf-menu"),
         date: day.date,
         title: day.title,
-        items: day.items.slice(0, 12),
+        items: day.items.slice(0, PDF_MENU_ITEMS_PER_DAY),
         notes: "Importado automaticamente de PDF. Revise antes de divulgar.",
         source: "pdf",
       }));
@@ -2068,9 +2069,11 @@ function MenuPage({
       setYear(parsed.year);
       setMonth(parsed.month);
       const skippedCount = importedDays.length - daysToImport.length;
+      const incompleteCount = importedDays.filter((day) => day.items.length < PDF_MENU_ITEMS_PER_DAY).length;
       setPdfStatus(
         `${daysToImport.length} dia(s) importado(s) para ${months[parsed.month]}/${parsed.year}.` +
           (skippedCount > 0 ? ` ${skippedCount} dia(s) manual(is) foram preservado(s).` : "") +
+          (incompleteCount > 0 ? ` ${incompleteCount} dia(s) ficaram com menos de ${PDF_MENU_ITEMS_PER_DAY} itens.` : "") +
           " Revise os boxes gerados.",
       );
     } catch (error) {

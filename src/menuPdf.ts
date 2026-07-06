@@ -17,6 +17,8 @@ export type ParsedPdfMenu = {
   preview: string;
 };
 
+export const PDF_MENU_ITEMS_PER_DAY = 9;
+
 function toISODate(year: number, month: number, day: number) {
   return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
@@ -103,14 +105,7 @@ function parsePdfMenuLines(
     if (!activeDay) return;
     const item = normalizePdfMenuItem(rawValue);
     if (isPdfMenuNoise(item)) return;
-    if (
-      !activeDay.items.some(
-        (current) =>
-          current.toLocaleLowerCase("pt-BR") === item.toLocaleLowerCase("pt-BR"),
-      )
-    ) {
-      activeDay.items.push(item);
-    }
+    activeDay.items.push(item);
   };
 
   for (const rawLine of lines) {
@@ -220,7 +215,7 @@ export function parseMenuPdfLayouts(
             .sort((a, b) => a.date.localeCompare(b.date))
         : [];
       const score = days.reduce(
-        (total, day) => total + 100 + Math.min(day.items.length, 10) * 4,
+        (total, day) => total + 100 + Math.min(day.items.length, PDF_MENU_ITEMS_PER_DAY) * 4,
         0,
       );
       return { lines, days, score };
