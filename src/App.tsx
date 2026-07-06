@@ -228,17 +228,6 @@ type PosterOrder = {
   packRule: string;
 };
 
-type ScheduleRow = {
-  day: number;
-  date: string;
-  weekday: string;
-  morning: string[];
-  afternoon: string[];
-  night: string[];
-  off: string[];
-  warning?: string;
-};
-
 const months = [
   "Janeiro",
   "Fevereiro",
@@ -253,8 +242,6 @@ const months = [
   "Novembro",
   "Dezembro",
 ];
-
-const weekdays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 const initialUsers: PortalUser[] = [
   {
@@ -492,10 +479,6 @@ function formatDate(value: string) {
   if (!value) return "Não informado";
   const date = new Date(`${value}T12:00:00`);
   return new Intl.DateTimeFormat("pt-BR").format(date);
-}
-
-function toISODate(year: number, month: number, day: number) {
-  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 function toMinutes(time: string) {
@@ -784,92 +767,6 @@ function fieldLabel(permission: Permission) {
 
 function getCurrentYear() {
   return new Date().getFullYear();
-}
-
-function parseObjections(raw: string) {
-  const objections = new Map<string, Set<number>>();
-  raw
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .forEach((line) => {
-      const [namePart, daysPart = ""] = line.split(":");
-      const name = namePart.trim().toLowerCase();
-      const days = daysPart
-        .split(/[,\s]+/)
-        .map((item) => Number(item.replace(/\D/g, "")))
-        .filter((item) => item >= 1 && item <= 31);
-      if (name && days.length) objections.set(name, new Set(days));
-    });
-  return objections;
-}
-
-function allocateShift(
-  pool: PortalUser[],
-  count: number,
-  totals: Map<string, number>,
-  preferredShift: PortalUser["shift"],
-) {
-  const sorted = [...pool].sort((a, b) => {
-    const preferredA = a.shift === preferredShift ? -1 : 0;
-    const preferredB = b.shift === preferredShift ? -1 : 0;
-    return preferredA - preferredB || (totals.get(a.id) ?? 0) - (totals.get(b.id) ?? 0);
-  });
-  return sorted.slice(0, count);
-}
-
-function generateSchedule(
-  people: PortalUser[],
-  year: number,
-  month: number,
-  minimums: { morning: number; afternoon: number; night: number },
-  objectionsRaw: string,
-) {
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const totals = new Map(people.map((person) => [person.id, 0]));
-  const objections = parseObjections(objectionsRaw);
-  const rows: ScheduleRow[] = [];
-
-  for (let day = 1; day <= daysInMonth; day += 1) {
-    const date = new Date(year, month, day, 12);
-    const available = people.filter((person, index) => {
-      const plannedOff = (day + index) % 7 === 6 || (day + index) % 7 === 0;
-      const personalObjection = objections.get(person.name.toLowerCase())?.has(day);
-      return !plannedOff && !personalObjection;
-    });
-
-    let remaining = [...available];
-    const morning = allocateShift(remaining, minimums.morning, totals, "Manhã");
-    remaining = remaining.filter((person) => !morning.includes(person));
-    const afternoon = allocateShift(remaining, minimums.afternoon, totals, "Tarde");
-    remaining = remaining.filter((person) => !afternoon.includes(person));
-    const night = allocateShift(remaining, minimums.night, totals, "Noite");
-    const working = [...morning, ...afternoon, ...night];
-
-    working.forEach((person) => totals.set(person.id, (totals.get(person.id) ?? 0) + 1));
-
-    const warning =
-      morning.length < minimums.morning ||
-      afternoon.length < minimums.afternoon ||
-      night.length < minimums.night
-        ? "Cobertura abaixo do mínimo em pelo menos um período."
-        : undefined;
-
-    rows.push({
-      day,
-      date: toISODate(year, month, day),
-      weekday: weekdays[date.getDay()],
-      morning: morning.map((person) => person.name),
-      afternoon: afternoon.map((person) => person.name),
-      night: night.map((person) => person.name),
-      off: people
-        .filter((person) => !working.includes(person))
-        .map((person) => person.name),
-      warning,
-    });
-  }
-
-  return rows;
 }
 
 function isGeneratedPdfMenuDay(day: MenuDay) {
@@ -2676,113 +2573,23 @@ function ApexPage() {
   );
 }
 
-function ScaleGeneratorPage({ users }: { users: PortalUser[] }) {
-  const candidates = users.filter((user) => user.roleName === "Colaborador" || user.roleName === "Lider");
-  const [year, setYear] = useState(getCurrentYear());
-  const [month, setMonth] = useState(new Date().getMonth());
-  const [quantity, setQuantity] = useState(Math.min(6, candidates.length));
-  const [minimums, setMinimums] = useState({ morning: 2, afternoon: 2, night: 1 });
-  const [objections, setObjections] = useState("Ana Paula: 10, 11\nBruno Souza: 3, 18");
-  const [rows, setRows] = useState<ScheduleRow[]>([]);
-
-  const selectedPeople = candidates.slice(0, quantity);
-
-  function generate(event: FormEvent) {
-    event.preventDefault();
-    setRows(generateSchedule(selectedPeople, year, month, minimums, objections));
-  }
-
+function ScaleGeneratorPage() {
   return (
     <>
       <SectionHeader
         icon={<ClipboardList size={18} />}
-        title="Gerador de Escala 5x2"
-        subtitle="Monte uma escala mensal com colaboradores, mínimos por período e objeções por dia."
+        title="Escala 5x2"
+        subtitle="Ferramenta para geração de escala mensal."
       />
-      <form className="form-panel scale-form" onSubmit={generate}>
-        <div className="form-grid three">
-          <label>
-            Mês
-            <select value={month} onChange={(event) => setMonth(Number(event.target.value))}>
-              {months.map((name, index) => (
-                <option key={name} value={index}>{name}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Ano
-            <input type="number" value={year} onChange={(event) => setYear(Number(event.target.value))} />
-          </label>
-          <label>
-            Quantidade de colaboradores
-            <input min={1} max={candidates.length} type="number" value={quantity} onChange={(event) => setQuantity(Number(event.target.value))} />
-          </label>
+      <section className="form-panel development-panel">
+        <div className="notice">
+          Esta página ainda está em desenvolvimento.
         </div>
-        <div className="form-grid three">
-          <label>
-            Mínimo manhã
-            <input type="number" min={0} value={minimums.morning} onChange={(event) => setMinimums({ ...minimums, morning: Number(event.target.value) })} />
-          </label>
-          <label>
-            Mínimo tarde
-            <input type="number" min={0} value={minimums.afternoon} onChange={(event) => setMinimums({ ...minimums, afternoon: Number(event.target.value) })} />
-          </label>
-          <label>
-            Mínimo noite
-            <input type="number" min={0} value={minimums.night} onChange={(event) => setMinimums({ ...minimums, night: Number(event.target.value) })} />
-          </label>
-        </div>
-        <label>
-          Objeções
-          <textarea value={objections} onChange={(event) => setObjections(event.target.value)} placeholder="Nome: 5, 12, 27" />
-        </label>
-        <div className="selected-people">
-          {selectedPeople.map((person) => (
-            <span key={person.id}>{person.name} · {person.shift}</span>
-          ))}
-        </div>
-        <button className="primary-button" type="submit">
-          <ClipboardList size={17} /> Gerar escala
-        </button>
-      </form>
-
-      {rows.length > 0 && (
-        <section className="month-board">
-          <div className="month-board-header">
-            <div>
-              <span>{months[month]} · {year}</span>
-              <h2>Escala mensal 5x2</h2>
-              <p>{selectedPeople.length} colaboradores considerados.</p>
-            </div>
-          </div>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Dia</th>
-                  <th>Manhã</th>
-                  <th>Tarde</th>
-                  <th>Noite</th>
-                  <th>Folga</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.date}>
-                    <td><strong>{row.day}</strong> {row.weekday}</td>
-                    <td>{row.morning.join(", ") || "-"}</td>
-                    <td>{row.afternoon.join(", ") || "-"}</td>
-                    <td>{row.night.join(", ") || "-"}</td>
-                    <td>{row.off.join(", ") || "-"}</td>
-                    <td>{row.warning ? <span className="status-pill red">{row.warning}</span> : <span className="status-pill green">Coberto</span>}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
+        <h2>Gerador temporariamente indisponível</h2>
+        <p className="muted">
+          O gerador de escala 5x2 está sendo revisado para funcionar com as regras reais da loja antes de ser liberado para uso.
+        </p>
+      </section>
     </>
   );
 }
@@ -3058,7 +2865,7 @@ function App() {
     menu: <MenuPage menus={menus} setMenus={setMenus} editable={false} />,
     calculators: <CalculatorsPage />,
     apex: hasLeaderAccess(user) ? <ApexPage /> : <Dashboard user={user} vacations={vacations} birthdays={birthdays} menus={menus} setActivePage={guardedSetPage} />,
-    scale: hasLeaderAccess(user) ? <ScaleGeneratorPage users={users} /> : <Dashboard user={user} vacations={vacations} birthdays={birthdays} menus={menus} setActivePage={guardedSetPage} />,
+    scale: hasLeaderAccess(user) ? <ScaleGeneratorPage /> : <Dashboard user={user} vacations={vacations} birthdays={birthdays} menus={menus} setActivePage={guardedSetPage} />,
     "admin-vacations": hasAdminAccess(user) ? <VacationPage boards={vacations} setBoards={setVacations} editable /> : null,
     "admin-birthdays": hasAdminAccess(user) ? <BirthdayPage boards={birthdays} setBoards={setBirthdays} editable /> : null,
     "admin-menu": hasAdminAccess(user) ? <MenuPage menus={menus} setMenus={setMenus} editable /> : null,

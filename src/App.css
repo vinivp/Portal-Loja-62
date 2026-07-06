@@ -388,7 +388,6 @@
 .section-kicker,
 .form-actions,
 .icon-actions,
-.selected-people,
 .segmented {
   display: flex;
   align-items: center;
@@ -1092,22 +1091,8 @@ pre {
   color: #657184;
 }
 
-.scale-form {
-  max-width: 1080px;
-}
-
-.selected-people {
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.selected-people span {
-  border-radius: 999px;
-  background: #edf4fb;
-  color: #244966;
-  padding: 6px 10px;
-  font-size: 12px;
-  font-weight: 900;
+.development-panel {
+  max-width: 720px;
 }
 
 .input-with-icon {
